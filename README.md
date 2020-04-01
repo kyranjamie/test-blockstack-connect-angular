@@ -1,27 +1,55 @@
-# TestBlockstackConnect
+# Blockstack with Angular 9
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 9.0.7.
 
 ## Development server
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`.
 
-## Code scaffolding
+## Notes
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+This project demonstrates some of the steps you'll need to take to get Blockstack running with an Angular application.
 
-## Build
+We're looking to improve our framework compatibility, so all frameworks work right out the box. Right now, there are a few workarounds needed. They're not ideal, but we're working to fix them. You can [follow along in this issue](https://github.com/blockstack/blockstack.js/issues/751).
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `--prod` flag for a production build.
+For the time being, try these steps can help:
 
-## Running unit tests
+### 1. Polyfill empty objects
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Add this block to your `polyfill.ts` file:
 
-## Running end-to-end tests
+```typescript
+(window as any).global = window;
+global.Buffer = require('buffer').Buffer;
+(window as any).process = {
+  version: '',
+};
+```
 
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
+This is required as a dependency of `@blockstack/connect`, blockstack.js, depends on some node.js packages.
 
-## Further help
+### 2. Polyfill `stream`
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+Similar to above, we need to avoid the dependency on node's `stream` package. Install `readable-stream` and add the following to your `tsconfig.app.json` file.
+
+```
+npm i --save readable-stream
+```
+
+```json
+  "compilerOptions": {
+    "paths": {
+      "stream": ["./node_modules/readable-stream"]
+    }
+  },
+```
+
+### 3. Use the package globally
+
+Add the package to your `index.html` rather than importing directly in your compoent. This mitigates some unresolved typing issues.
+
+```
+<script src="https://unpkg.com/@blockstack/connect"></script>
+```
+
+[See the component file to see how this is implemented.](./src/app/app.component.ts)
