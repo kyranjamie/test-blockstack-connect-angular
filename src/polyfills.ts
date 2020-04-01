@@ -68,3 +68,5 @@ global.Buffer = global.Buffer || require("buffer").Buffer;
 (window as any).process = {
   version: ""
 };
+
+global.process.env = {}
