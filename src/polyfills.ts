@@ -66,4 +66,5 @@ import 'zone.js/dist/zone'; // Included with Angular CLI.
 global.Buffer = require('buffer').Buffer;
 (window as any).process = {
   version: '',
+  env: {}
 };

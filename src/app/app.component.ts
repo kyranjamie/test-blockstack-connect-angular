@@ -1,48 +1,49 @@
 import { Component } from '@angular/core';
-import { Subject } from 'rxjs';
-// import { showBlockstackConnect } from '@blockstack/connect';
-
+import { Subject, BehaviorSubject, ReplaySubject } from 'rxjs';
+import { switchMap, tap } from 'rxjs/operators';
 import { UserSession } from 'blockstack';
-
-const authOptions = {
-  redirectTo: '/',
-  manifestPath: '/manifest.json',
-  sendToSignIn: true,
-  userSession: new UserSession(),
-  appDetails: {
-    name: 'BlockExample',
-    icon: 'http://placekitten.com/g/100/100',
-  },
-};
-
-const legacyBrowserAuthFlow = () => {
-  const key = authOptions.userSession.generateAndStoreTransitKey();
-  const authRequest = authOptions.userSession.makeAuthRequest(
-    key,
-    'http://localhost:4200',
-    'http://localhost:4200/manifest.json',
-    ['scope_write'],
-    'https://localhost:4200'
-  );
-  authOptions.userSession.redirectToSignInWithAuthRequest(authRequest);
-};
-
-const loadBlockstackConnectWithGlobal = () => {
-  (window as any).blockstackConnect.showBlockstackConnect(authOptions);
-};
+import { AuthOptions, FinishedData } from '@blockstack/connect';
 
 @Component({
   selector: 'app-root',
   template: `
-    <main>
-      <button (click)="buttonClick$.next()">Blockstack Connect</button>
+    <main style="margin: 100px auto; max-width: 960px;">
+      <h3>Open Blockstack Connect</h3>
+      <button (click)="blockstackAuthButtonClick$.next()">{{ buttonText$ | async }}</button>
+      <ng-container *ngIf="authResponse$ | async as authResponse">
+        <h3>Auth response</h3>
+        <code>
+          <pre>{{ authResponse | json }}</pre>
+        </code>
+      </ng-container>
     </main>
   `,
 })
 export class AppComponent {
-  buttonClick$ = new Subject();
+  buttonText$ = new BehaviorSubject('Auth with Blockstack');
+
+  blockstackAuthButtonClick$ = new Subject<void>();
+  authResponse$ = new ReplaySubject<FinishedData>(1);
+
+  authOptions: AuthOptions = {
+    redirectTo: '/',
+    manifestPath: '/manifest.json',
+    sendToSignIn: true,
+    finished: response => this.authResponse$.next(response),
+    userSession: new UserSession(),
+    appDetails: {
+      name: 'BlockExample',
+      icon: 'http://placekitten.com/g/100/100',
+    },
+  };
 
   ngOnInit() {
-    this.buttonClick$.subscribe(() => loadBlockstackConnectWithGlobal());
+    this.blockstackAuthButtonClick$
+      .pipe(
+        tap(() => this.buttonText$.next('Loading')),
+        switchMap(() => import('@blockstack/connect')),
+        tap(() => this.buttonText$.next('Auth with Blockstack'))
+      )
+      .subscribe(connectLibrary => connectLibrary.showBlockstackConnect(this.authOptions));
   }
 }
